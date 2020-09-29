@@ -13,6 +13,7 @@ from django.http import StreamingHttpResponse, FileResponse
 
 from account.decorators import problem_permission_required, ensure_created_by
 from contest.models import Contest, ContestStatus
+from collection.models import Course, Practice
 from fps.parser import FPSHelper, FPSParser
 from judge.dispatcher import SPJCompiler
 from options.options import SysOptions
@@ -473,8 +474,8 @@ class AddContestProblemAPI(APIView):
     def post(self, request):
         data = request.data
         try:
-            contest = Contest.objects.get(id=data["contest_id"])
-            problem = Problem.objects.get(id=data["problem_id"])
+            contest = Contest.objects.get(id=data["cid"])
+            problem = Problem.objects.get(id=data["pid"])
         except (Contest.DoesNotExist, Problem.DoesNotExist):
             return self.error("Contest or Problem does not exist")
 
@@ -703,3 +704,88 @@ class FPSProblemImport(CSRFExemptAPIView):
                 problem_data["test_case_score"] = score
                 self._create_problem(problem_data, request.user)
         return self.success({"import_count": len(problems)})
+
+
+class CollectionProblemAPI(ProblemBase):
+    def post(self, request):
+        data = request.data
+        _id = data["_id"]
+        if not _id:
+            return self.error("Display ID is required")
+        if Problem.objects.filter(_id=_id, contest_id__isnull=True).exists():
+            return self.error("Display ID already exists")
+
+        error_info = self.common_checks(request)
+        if error_info:
+            return self.error(error_info)
+
+        # todo check filename and score info
+        tags = data.pop("tags")
+        data["created_by"] = request.user
+
+        collectionType = data.pop("collection_type")
+        collectionId = data.pop("collection_id")
+        if (collectionType == 'course'):
+            collection = Course.objects.get(id=collectionId)
+        else:
+            collection = Practice.objects.get(id=collectionId)
+        problem = collection.problems.create(**data)
+
+        for item in tags:
+            try:
+                tag = ProblemTag.objects.get(name=item)
+            except ProblemTag.DoesNotExist:
+                tag = ProblemTag.objects.create(name=item)
+            problem.tags.add(tag)
+        return self.success(ProblemAdminSerializer(problem).data)
+
+    def get(self, request):
+        problem_id = request.GET.get("id")
+        collection_id = request.GET.get("collection_id")
+        collection_type = request.GET.get("collection_type")
+
+        user = request.user
+        if problem_id:
+            try:
+                problem = Problem.objects.get(id=problem_id)
+                ensure_created_by(problem.contest, user)
+            except Problem.DoesNotExist:
+                return self.error("Problem does not exist")
+            return self.success(ProblemAdminSerializer(problem).data)
+
+        if not collection_id:
+            return self.error("Collection id is required")
+        try:
+            if collection_type == 'course':
+                collection = Course.objects.get(id=collection_id)
+            else:
+                collection = Practice.objects.get(id=collection_id)
+            ensure_created_by(collection, user)
+        except Course.DoesNotExist:
+            return self.error("Course does not exist")
+        except Practice.DoesNotExist:
+            return self.error("Practice does not exist")
+        problems = collection.problems.all()
+        if user.is_admin():
+            problems = problems.filter(course__created_by=user)
+        keyword = request.GET.get("keyword")
+        if keyword:
+            problems = problems.filter(title__contains=keyword)
+        return self.success(self.paginate_data(request, problems, ProblemAdminSerializer))
+
+    def delete(self, request):
+        id = request.GET.get("id")
+        if not id:
+            return self.error("Invalid parameter, id is required")
+        try:
+            problem = Problem.objects.get(id=id, contest_id__isnull=False)
+        except Problem.DoesNotExist:
+            return self.error("Problem does not exists")
+        ensure_created_by(problem.contest, request.user)
+        if Submission.objects.filter(problem=problem).exists():
+            return self.error("Can't delete the problem as it has submissions")
+        # d = os.path.join(settings.TEST_CASE_DIR, problem.test_case_id)
+        # if os.path.isdir(d):
+        #    shutil.rmtree(d, ignore_errors=True)
+        problem.delete()
+        return self.success()
