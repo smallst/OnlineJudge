@@ -44,6 +44,7 @@ if production_env:
 LOCAL_APPS = [
     'account',
     'announcement',
+    'collection',
     'conf',
     'problem',
     'contest',

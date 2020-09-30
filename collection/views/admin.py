@@ -18,7 +18,9 @@ from utils.constants import CacheKey
 from utils.shortcuts import rand_str
 from utils.tasks import delete_files
 from ..models import Course, Practice
-from ..serializers import (CourseSerializer, CreateCourseSerializer, EditCourseSerializer, PracticeSerializer, CreatePracticeSerializer, EditPracticeSerializer)
+from ..serializers import (CourseSerializer, CreateCourseSerializer, EditCourseSerializer,
+                           PracticeSerializer, CreatePracticeSerializer, EditPracticeSerializer,
+                           ParticipantSerializer)
 
 
 class CourseAPI(APIView):
@@ -115,6 +117,29 @@ class AddCollectionProblemAPI(APIView):
             collection = Practice.objects.get(id=data.pop('cid'))
         problem = Problem.objects.get(id=data.pop('pid'))
         collection.problems.add(problem)
+        collection.save()
+        return self.success()
+
+
+class CollectionParticipantAPI(APIView):
+    def get(self, request):
+        collectionType = request.GET.get("collection_type")
+        collectionId = request.GET.get("collection_id")
+        if collectionType == 'course':
+            collection = Course.objects.get(id=collectionId)
+        else:
+            collection = Practice.objects.get(id=collectionId)
+        return self.success(self.paginate_data(request, collection.participants.all(), ParticipantSerializer))
+
+    def post(self, request):
+        data = request.data
+        collectionType = data.pop('type')
+        if collectionType == 'course':
+            collection = Course.objects.get(id=data.pop('cid'))
+        else:
+            collection = Practice.objects.get(id=data.pop('cid'))
+        user = User.objects.get(id=data.pop('uid'))
+        collection.participants.add(user)
         collection.save()
         return self.success()
 

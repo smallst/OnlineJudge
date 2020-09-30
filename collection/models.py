@@ -14,8 +14,9 @@ class Practice(models.Model):
     description = RichTextField()
     create_time = models.DateTimeField(auto_now_add=True)
     last_update_time = models.DateTimeField(auto_now=True)
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_practices')
     problems = models.ManyToManyField(Problem)
+    participants = models.ManyToManyField(User)
     # 是否可见 false的话相当于删除
     visible = models.BooleanField(default=True)
 
@@ -29,9 +30,10 @@ class Course(models.Model):
     description = RichTextField()
     create_time = models.DateTimeField(auto_now_add=True)
     last_update_time = models.DateTimeField(auto_now=True)
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_courses')
     problems = models.ManyToManyField(Problem)
     practices = models.ManyToManyField(Practice)
+    participants = models.ManyToManyField(User)
     # 是否可见 false的话相当于删除
     visible = models.BooleanField(default=True)
 

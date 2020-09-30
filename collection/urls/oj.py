@@ -2,11 +2,12 @@ from django.conf.urls import url
 
 # from ..views.oj import ContestAnnouncementListAPI
 # from ..views.oj import ContestPasswordVerifyAPI, ContestAccessAPI
-# from ..views.oj import ContestListAPI, ContestAPI
+from ..views.oj import CollectionListAPI, UserCollectionListAPI
 # from ..views.oj import ContestRankAPI
 
 urlpatterns = [
-    # url(r"^contests/?$", ContestListAPI.as_view(), name="contest_list_api"),
+    url(r"^collections/?$", CollectionListAPI.as_view(), name="collection_list_api"),
+    url(r"^collections/me/?$", UserCollectionListAPI.as_view(), name="user_collection_list_api")
     # url(r"^contest/?$", ContestAPI.as_view(), name="contest_api"),
     # url(r"^contest/password/?$", ContestPasswordVerifyAPI.as_view(), name="contest_password_api"),
     # url(r"^contest/announcement/?$", ContestAnnouncementListAPI.as_view(), name="contest_announcement_api"),

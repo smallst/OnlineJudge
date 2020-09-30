@@ -4,6 +4,7 @@ import time
 
 from problem.models import Problem
 from contest.models import Contest, ContestType, ContestStatus, ContestRuleType
+from collection.models import Course
 from utils.api import JSONResponse, APIError
 from utils.constants import CONTEST_PASSWORD_SESSION_KEY
 from .models import ProblemPermission
@@ -134,6 +135,46 @@ def check_contest_permission(check_type="details"):
             return func(*args, **kwargs)
         return _check_permission
     return decorator
+
+
+def check_course_permission():
+    """
+    只供Class based view 使用，检查用户是否有权进入该course, check_type
+    若通过验证，在view中可通过self.contest获得该contest
+    """
+
+    def decorator(func):
+        def _check_permission(*args, **kwargs):
+            self = args[0]
+            request = args[1]
+            user = request.user
+            if request.data.get("course_id"):
+                course_id = request.data["course_id"]
+            else:
+                course_id = request.GET.get("course_id")
+            if not course_id:
+                return self.error("Parameter error, course_id is required")
+
+            try:
+                # use self.course to avoid query course again in view.
+                self.course = Course.objects.select_related("created_by").get(id=course_id, visible=True)
+            except Course.DoesNotExist:
+                return self.error("Course %s doesn't exist" % course_id)
+
+            # Anonymous
+            if not user.is_authenticated:
+                return self.error("Please login first.")
+
+            # creator or owner
+            if user.is_course_admin(self.course):
+                return func(*args, **kwargs)
+
+            # todo: check does user enrolled Course
+
+            return func(*args, **kwargs)
+        return _check_permission
+    return decorator
+
 
 
 def ensure_created_by(obj, user):

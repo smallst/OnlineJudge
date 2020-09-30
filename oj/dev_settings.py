@@ -6,11 +6,11 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'HOST': '127.0.0.1',
-        'PORT': 5435,
         'NAME': "onlinejudge",
         'USER': "onlinejudge",
-        'PASSWORD': 'onlinejudge'
+        'PASSWORD': 'onlinejudge',
+        'HOST': 'host.docker.internal',
+        'PORT': 5435
     }
 }
 
