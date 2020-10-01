@@ -51,13 +51,13 @@ class UserCollectionListAPI(APIView):
     def _add_problem_status(request, data):
         if request.user.is_authenticated:
             profile = request.user.userprofile
-            oi_problems_status = profile.oi_problems_status.get("problems", {})
+            problems_status = profile.acm_problems_status.get("problems", {})
             collections = data.get("results")
             if collections is None:
                 return
             for col in collections:
-                for problem in col.problems:
-                    problem["my_status"] = oi_problems_status.get(str(problem["id"]), {}).get("status")
+                for problem in col["problems"]:
+                    problem["my_status"] = problems_status.get(str(problem["id"]), {}).get("status")
 
     @method_decorator(ensure_csrf_cookie)
     def get(self, request, **kwargs):
@@ -76,5 +76,5 @@ class UserCollectionListAPI(APIView):
             # collections = Practice.objects.prefetch_related('problems').filter(participants=user)
             collections = user.practice_set.all()
             data = self.paginate_data(request, collections, PracticeSerializer)
-
+            self._add_problem_status(request, data)
             return self.success(data)
