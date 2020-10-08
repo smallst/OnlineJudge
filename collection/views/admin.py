@@ -65,6 +65,20 @@ class CourseAPI(APIView):
         return self.success(self.paginate_data(request, courses, CourseSerializer))
 
 
+class CoursePracticeAPI(APIView):
+    def get(self, request):
+        course = Course.objects.get(id=request.GET.get("id"))
+        return self.success(self.paginate_data(request, course.practices.all(),
+                                               PracticeSerializer))
+
+    def post(self, request):
+        data = request.data
+        course = Course.objects.get(id=data.pop("cid"))
+        practice = Practice.objects.get(id=data.pop("pid"))
+        course.practices.add(practice)
+        return self.success()
+
+
 class PracticeAPI(APIView):
     @validate_serializer(CreatePracticeSerializer)
     def post(self, request):
@@ -141,5 +155,28 @@ class CollectionParticipantAPI(APIView):
         user = User.objects.get(id=data.pop('uid'))
         collection.participants.add(user)
         collection.save()
+        return self.success()
+
+    def delete(self, request):
+        collectionType = request.GET.get("type")
+        collectionId = request.GET.get("cid")
+        userId = request.GET.get("id")
+        if not collectionType or not collectionId or not userId:
+            return self.error("Invalid parameter, type/cid/id are required")
+
+        try:
+            user = User.objects.get(id=userId)
+        except User.DoesNotExist:
+            return self.error("User does not exists")
+
+        if collectionType == 'course':
+            collection = Course.objects.get(id=collectionId)
+        else:
+            collection = Practice.objects.get(id=collectionId)
+        
+        try:
+            collection.participants.remove(user)
+        except Exception:
+            return self.error("no such user in participants list")
         return self.success()
 

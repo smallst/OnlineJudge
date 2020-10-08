@@ -71,9 +71,11 @@ class UserCollectionListAPI(APIView):
         collection_type = request.GET.get("type")
 
         if collection_type == 'course':
-            return self.success(self.paginate_data(request, user.course_set.all().prefetch_related('course_set__problems'), CourseSerializer))
+            collections = user.course_set.all()
+            data = self.paginate_data(request, collections, PracticeSerializer)
+            self._add_problem_status(request, data)
+            return self.success(data)
         else:
-            # collections = Practice.objects.prefetch_related('problems').filter(participants=user)
             collections = user.practice_set.all()
             data = self.paginate_data(request, collections, PracticeSerializer)
             self._add_problem_status(request, data)

@@ -10,6 +10,7 @@ DATABASES = {
         'USER': "onlinejudge",
         'PASSWORD': 'onlinejudge',
         'HOST': 'host.docker.internal',
+        # 'HOST': '127.0.0.1',
         'PORT': 5435
     }
 }
